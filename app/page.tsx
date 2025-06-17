@@ -5,9 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { parseCSVFile, type ParsedCSVData } from '@/lib/csv-parser';
 import { MovieList } from '@/components/movie-list';
+import { MovieMetadataList } from '@/components/movie-metadata';
+import { supabase } from '@/lib/supabase';
+import { fetchMovieDetails } from '@/lib/omdb-service';
+import type { MovieMetadata } from '@/lib/supabase';
+import { cleanTitleForOMDB } from '@/lib/utils';
 
 interface FileUploadState {
   file: File | null;
@@ -27,6 +32,9 @@ export default function Home() {
   });
 
   const [isDragOver, setIsDragOver] = useState(false);
+  const [titles, setTitles] = useState<string[]>([]);
+  const [metadata, setMetadata] = useState<MovieMetadata[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateCSVFile = (file: File): string | null => {
     // Check file extension
@@ -107,6 +115,8 @@ export default function Home() {
         preview,
         parsedData,
       });
+
+      setTitles(parsedData.data.map(row => row[parsedData.headers[0]] as string));
     } catch (error) {
       setUploadState({
         file: null,
@@ -180,6 +190,70 @@ export default function Home() {
       default:
         return 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100';
     }
+  };
+
+  const fetchAndStoreMetadata = async () => {
+    setIsLoading(true);
+    const newMetadata: MovieMetadata[] = [];
+
+    // Clean and deduplicate titles
+    const cleanedTitleMap = new Map<string, string>();
+    for (const originalTitle of titles.slice(0, 10)) {
+      const cleaned = cleanTitleForOMDB(originalTitle);
+      if (!cleanedTitleMap.has(cleaned)) {
+        cleanedTitleMap.set(cleaned, originalTitle);
+      }
+    }
+    const uniqueCleanedTitles = Array.from(cleanedTitleMap.entries());
+
+    for (const [cleanedTitle, originalTitle] of uniqueCleanedTitles) {
+      try {
+        // Check if metadata already exists in Supabase (by original title)
+        const { data: existingData } = await supabase
+          .from('movie_metadata')
+          .select('*')
+          .eq('title', originalTitle)
+          .single();
+
+        if (existingData) {
+          newMetadata.push(existingData);
+          continue;
+        }
+
+        // Fetch from OMDB using cleaned title
+        const omdbData = await fetchMovieDetails(cleanedTitle);
+        
+        const movieMetadata: MovieMetadata = {
+          title: originalTitle, // Store the original title
+          genre: omdbData.Genre,
+          cast: omdbData.Actors,
+          director: omdbData.Director,
+          duration: omdbData.Runtime,
+          poster_url: omdbData.Poster !== 'N/A' ? omdbData.Poster : undefined
+        };
+
+        // Store in Supabase
+        const { data, error } = await supabase
+          .from('movie_metadata')
+          .insert([movieMetadata])
+          .select()
+          .single();
+
+        if (error) {
+          console.error(`Error storing metadata for ${originalTitle}:`, error);
+          continue;
+        }
+
+        if (data) {
+          newMetadata.push(data);
+        }
+      } catch (error) {
+        console.error(`Error processing ${originalTitle}:`, error);
+      }
+    }
+
+    setMetadata(newMetadata);
+    setIsLoading(false);
   };
 
   return (
@@ -328,10 +402,36 @@ export default function Home() {
           {/* Movie List Section */}
           <div>
             {uploadState.parsedData ? (
-              <MovieList 
-                titles={uploadState.parsedData.movieTitles} 
-                totalCount={uploadState.parsedData.data.length}
-              />
+              <>
+                <div className="mb-8">
+                  <MovieList 
+                    titles={titles} 
+                    totalCount={uploadState.parsedData.data.length}
+                  />
+                </div>
+                <div className="mb-4">
+                  <Button
+                    onClick={fetchAndStoreMetadata}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Fetching Metadata...
+                      </>
+                    ) : (
+                      'Fetch Movie Metadata'
+                    )}
+                  </Button>
+                </div>
+                {metadata.length > 0 && (
+                  <div className="mb-8">
+                    <h2 className="mb-4 text-2xl font-bold">Movie Metadata</h2>
+                    <MovieMetadataList metadata={metadata} />
+                  </div>
+                )}
+              </>
             ) : (
               <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm h-full flex items-center justify-center">
                 <CardContent className="text-center py-16">
