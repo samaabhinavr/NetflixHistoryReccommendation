@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -13,6 +13,8 @@ import { supabase } from '@/lib/supabase';
 import { fetchMovieDetails } from '@/lib/omdb-service';
 import type { MovieMetadata } from '@/lib/supabase';
 import { cleanTitleForOMDB } from '@/lib/utils';
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useRouter } from 'next/navigation'
 
 interface FileUploadState {
   file: File | null;
@@ -23,6 +25,10 @@ interface FileUploadState {
 }
 
 export default function Home() {
+  const session = useSession();
+  const router = useRouter();
+
+  // All hooks must be called before any return
   const [uploadState, setUploadState] = useState<FileUploadState>({
     file: null,
     status: 'idle',
@@ -30,12 +36,12 @@ export default function Home() {
     preview: null,
     parsedData: null,
   });
-
   const [isDragOver, setIsDragOver] = useState(false);
   const [titles, setTitles] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<MovieMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // All callbacks must be defined after hooks, before any return
   const validateCSVFile = (file: File): string | null => {
     // Check file extension
     const fileName = file.name.toLowerCase();
@@ -193,6 +199,7 @@ export default function Home() {
   };
 
   const fetchAndStoreMetadata = async () => {
+    if (!session) return;
     setIsLoading(true);
     const newMetadata: MovieMetadata[] = [];
 
@@ -208,53 +215,65 @@ export default function Home() {
 
     for (const [cleanedTitle, originalTitle] of uniqueCleanedTitles) {
       try {
-        // Check if metadata already exists in Supabase (by original title)
+        // Check if metadata already exists in Supabase (by original title and user_id)
         const { data: existingData } = await supabase
           .from('movie_metadata')
           .select('*')
           .eq('title', originalTitle)
-          .single();
+          .eq('user_id', session.user.id)
+          .single()
 
         if (existingData) {
-          newMetadata.push(existingData);
-          continue;
+          newMetadata.push(existingData)
+          continue
         }
 
         // Fetch from OMDB using cleaned title
-        const omdbData = await fetchMovieDetails(cleanedTitle);
+        const omdbData = await fetchMovieDetails(cleanedTitle)
         
         const movieMetadata: MovieMetadata = {
+          user_id: session.user.id, // Associate with current user
           title: originalTitle, // Store the original title
           genre: omdbData.Genre,
           cast: omdbData.Actors,
           director: omdbData.Director,
           duration: omdbData.Runtime,
           poster_url: omdbData.Poster !== 'N/A' ? omdbData.Poster : undefined
-        };
+        }
 
         // Store in Supabase
         const { data, error } = await supabase
           .from('movie_metadata')
           .insert([movieMetadata])
           .select()
-          .single();
+          .single()
 
         if (error) {
-          console.error(`Error storing metadata for ${originalTitle}:`, error);
-          continue;
+          console.error(`Error storing metadata for ${originalTitle}:`, error)
+          continue
         }
 
         if (data) {
-          newMetadata.push(data);
+          newMetadata.push(data)
         }
       } catch (error) {
-        console.error(`Error processing ${originalTitle}:`, error);
+        console.error(`Error processing ${originalTitle}:`, error)
       }
     }
 
     setMetadata(newMetadata);
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    if (!session) {
+      router.replace('/login');
+    }
+  }, [session, router]);
+
+  if (!session) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">

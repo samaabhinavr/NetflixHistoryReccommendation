@@ -7,6 +7,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export type MovieMetadata = {
   id?: number
+  user_id?: string
   title: string
   genre: string
   cast: string
