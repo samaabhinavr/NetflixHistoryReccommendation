@@ -38,19 +38,25 @@ export default function MovieRecommendations() {
   const loadRecommendations = async () => {
     if (!session?.user) return;
 
+    console.log('Loading recommendations for user:', session.user.id);
     setLoading(true);
     setError(null);
 
     try {
       // Fetch user's viewing history
+      console.log('Fetching user metadata...');
       const userMetadata = await fetchUserMetadata(session.user.id);
+      console.log('Fetched user metadata:', userMetadata.length, 'movies');
       
       // Aggregate user preferences
       const userPreferences = aggregatePreferences(userMetadata);
+      console.log('Aggregated preferences:', userPreferences);
       setPreferences(userPreferences);
 
       // Generate recommendations
+      console.log('Generating recommendations...');
       const recs = await generateRecommendations(session.user.id, userPreferences, 10);
+      console.log('Generated recommendations:', recs.length);
       
       // Fetch posters for recommendations
       const recommendationsWithPosters = await Promise.all(
@@ -68,8 +74,10 @@ export default function MovieRecommendations() {
         })
       );
       
+      console.log('Final recommendations with posters:', recommendationsWithPosters.length);
       setRecommendations(recommendationsWithPosters);
     } catch (err) {
+      console.error('Error loading recommendations:', err);
       setError(err instanceof Error ? err.message : "Failed to load recommendations");
     } finally {
       setLoading(false);

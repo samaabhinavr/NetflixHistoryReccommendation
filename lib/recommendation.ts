@@ -2,14 +2,18 @@ import { supabase } from "@/lib/supabase";
 import type { MovieMetadata } from "@/lib/supabase";
 
 export async function fetchUserMetadata(userId: string): Promise<MovieMetadata[]> {
+  console.log('fetchUserMetadata called for user:', userId);
   const { data, error } = await supabase
     .from("movie_metadata")
     .select("*")
     .eq("user_id", userId);
 
   if (error) {
+    console.error('Error fetching user metadata:', error);
     throw new Error(error.message);
   }
+  
+  console.log('Fetched metadata from database:', data?.length || 0, 'records');
   return data || [];
 }
 

@@ -256,6 +256,7 @@ export default function Home() {
 
   const fetchAndStoreMetadata = async () => {
     if (!session) return;
+    console.log('Starting metadata fetch for user:', session.user.id);
     setIsLoading(true);
     setMetadata([]);
     setPreferences(null);
@@ -271,6 +272,7 @@ export default function Home() {
       }
     }
     const uniqueCleanedTitles = Array.from(cleanedTitleMap.entries());
+    console.log('Processing', uniqueCleanedTitles.length, 'unique titles');
 
     // Configure parallel processing
     const BATCH_SIZE = 25; // Increased from 15 to 25 concurrent requests
@@ -315,11 +317,13 @@ export default function Home() {
       }
     }
 
+    console.log('Successfully processed', newMetadata.length, 'movies');
     setIsLoading(false);
     setProgress({ current: 0, total: 0, batch: 0, totalBatches: 0 });
     
     // Aggregate preferences after fetching metadata
     const aggregated = aggregatePreferences(newMetadata);
+    console.log('Aggregated preferences:', aggregated);
     setPreferences(aggregated);
   };
 
