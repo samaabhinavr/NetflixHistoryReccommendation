@@ -1,3 +1,3 @@
-# NetflixHistoryReccommendation
+# NetflixHistoryRecommendation
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/samaabhinavr/NetflixHistoryReccommendation)
+https://netflix-history-reccommendation-8kq.vercel.app/ 
