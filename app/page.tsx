@@ -9,12 +9,15 @@ import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from '
 import { parseCSVFile, type ParsedCSVData } from '@/lib/csv-parser';
 import { MovieList } from '@/components/movie-list';
 import { MovieMetadataList } from '@/components/movie-metadata';
+import UserPreferences from '@/components/UserPreferences';
 import { supabase } from '@/lib/supabase';
 import { fetchMovieDetails } from '@/lib/omdb-service';
+import { aggregatePreferences, type AggregatedPreferences } from '@/lib/recommendation';
 import type { MovieMetadata } from '@/lib/supabase';
 import { cleanTitleForOMDB } from '@/lib/utils';
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import { useRouter } from 'next/navigation'
+import ProgressIndicator from '@/components/ProgressIndicator';
 
 interface FileUploadState {
   file: File | null;
@@ -40,6 +43,8 @@ export default function Home() {
   const [titles, setTitles] = useState<string[]>([]);
   const [metadata, setMetadata] = useState<MovieMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [preferences, setPreferences] = useState<AggregatedPreferences | null>(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0, batch: 0, totalBatches: 0 });
 
   // All callbacks must be defined after hooks, before any return
   const validateCSVFile = (file: File): string | null => {
@@ -198,14 +203,67 @@ export default function Home() {
     }
   };
 
+  // Helper function to delay execution
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  // Process a single title
+  const processTitle = async (cleanedTitle: string, originalTitle: string): Promise<MovieMetadata | null> => {
+    try {
+      // Check if metadata already exists in Supabase (by original title and user_id)
+      const { data: existingData } = await supabase
+        .from('movie_metadata')
+        .select('*')
+        .eq('title', originalTitle)
+        .eq('user_id', session!.user.id)
+        .single();
+
+      if (existingData) {
+        return existingData;
+      }
+
+      // Fetch from OMDB using cleaned title
+      const omdbData = await fetchMovieDetails(cleanedTitle);
+      
+      const movieMetadata: MovieMetadata = {
+        user_id: session!.user.id,
+        title: originalTitle,
+        genre: omdbData.Genre,
+        cast: omdbData.Actors,
+        director: omdbData.Director,
+        duration: omdbData.Runtime,
+        poster_url: omdbData.Poster !== 'N/A' ? omdbData.Poster : undefined
+      };
+
+      // Store in Supabase
+      const { data, error } = await supabase
+        .from('movie_metadata')
+        .insert([movieMetadata])
+        .select()
+        .single();
+
+      if (error) {
+        console.error(`Error storing metadata for ${originalTitle}:`, error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error(`Error processing ${originalTitle}:`, error);
+      return null;
+    }
+  };
+
   const fetchAndStoreMetadata = async () => {
     if (!session) return;
     setIsLoading(true);
+    setMetadata([]);
+    setPreferences(null);
+    
     const newMetadata: MovieMetadata[] = [];
 
     // Clean and deduplicate titles
     const cleanedTitleMap = new Map<string, string>();
-    for (const originalTitle of titles.slice(0, 10)) {
+    for (const originalTitle of titles) {
       const cleaned = cleanTitleForOMDB(originalTitle);
       if (!cleanedTitleMap.has(cleaned)) {
         cleanedTitleMap.set(cleaned, originalTitle);
@@ -213,56 +271,55 @@ export default function Home() {
     }
     const uniqueCleanedTitles = Array.from(cleanedTitleMap.entries());
 
-    for (const [cleanedTitle, originalTitle] of uniqueCleanedTitles) {
-      try {
-        // Check if metadata already exists in Supabase (by original title and user_id)
-        const { data: existingData } = await supabase
-          .from('movie_metadata')
-          .select('*')
-          .eq('title', originalTitle)
-          .eq('user_id', session.user.id)
-          .single()
+    // Configure parallel processing
+    const BATCH_SIZE = 25; // Increased from 15 to 25 concurrent requests
+    const DELAY_BETWEEN_BATCHES = 1500; // 1.5 seconds
+    const totalBatches = Math.ceil(uniqueCleanedTitles.length / BATCH_SIZE);
+    
+    setProgress({ current: 0, total: uniqueCleanedTitles.length, batch: 0, totalBatches });
 
-        if (existingData) {
-          newMetadata.push(existingData)
-          continue
+    // Process in batches
+    for (let i = 0; i < uniqueCleanedTitles.length; i += BATCH_SIZE) {
+      const batch = uniqueCleanedTitles.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      
+      setProgress(prev => ({ ...prev, batch: batchNumber }));
+      
+      // Process batch in parallel
+      const batchPromises = batch.map(([cleanedTitle, originalTitle]) => 
+        processTitle(cleanedTitle, originalTitle)
+      );
+      
+      const batchResults = await Promise.allSettled(batchPromises);
+      
+      // Add successful results to metadata
+      batchResults.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value) {
+          newMetadata.push(result.value);
         }
-
-        // Fetch from OMDB using cleaned title
-        const omdbData = await fetchMovieDetails(cleanedTitle)
-        
-        const movieMetadata: MovieMetadata = {
-          user_id: session.user.id, // Associate with current user
-          title: originalTitle, // Store the original title
-          genre: omdbData.Genre,
-          cast: omdbData.Actors,
-          director: omdbData.Director,
-          duration: omdbData.Runtime,
-          poster_url: omdbData.Poster !== 'N/A' ? omdbData.Poster : undefined
-        }
-
-        // Store in Supabase
-        const { data, error } = await supabase
-          .from('movie_metadata')
-          .insert([movieMetadata])
-          .select()
-          .single()
-
-        if (error) {
-          console.error(`Error storing metadata for ${originalTitle}:`, error)
-          continue
-        }
-
-        if (data) {
-          newMetadata.push(data)
-        }
-      } catch (error) {
-        console.error(`Error processing ${originalTitle}:`, error)
+      });
+      
+      // Update progress
+      setProgress(prev => ({ 
+        ...prev, 
+        current: Math.min(i + BATCH_SIZE, uniqueCleanedTitles.length) 
+      }));
+      
+      // Update metadata state with current results
+      setMetadata([...newMetadata]);
+      
+      // Delay between batches (except for the last batch)
+      if (i + BATCH_SIZE < uniqueCleanedTitles.length) {
+        await delay(DELAY_BETWEEN_BATCHES);
       }
     }
 
-    setMetadata(newMetadata);
     setIsLoading(false);
+    setProgress({ current: 0, total: 0, batch: 0, totalBatches: 0 });
+    
+    // Aggregate preferences after fetching metadata
+    const aggregated = aggregatePreferences(newMetadata);
+    setPreferences(aggregated);
   };
 
   useEffect(() => {
@@ -444,9 +501,11 @@ export default function Home() {
                     )}
                   </Button>
                 </div>
+                {isLoading && <ProgressIndicator progress={progress} />}
                 {metadata.length > 0 && (
                   <div className="mb-8">
                     <h2 className="mb-4 text-2xl font-bold">Movie Metadata</h2>
+                    <UserPreferences preferences={preferences} />
                     <MovieMetadataList metadata={metadata} />
                   </div>
                 )}

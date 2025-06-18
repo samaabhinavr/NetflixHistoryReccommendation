@@ -5,6 +5,8 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import type { MovieMetadata } from "@/lib/supabase";
 
 export default function LoginPage() {
   const supabase = useSupabaseClient();
@@ -30,4 +32,16 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+export async function fetchUserMetadata(userId: string): Promise<MovieMetadata[]> {
+  const { data, error } = await supabase
+    .from("movie_metadata")
+    .select("*")
+    .eq("user_id", userId);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data || [];
 } 
