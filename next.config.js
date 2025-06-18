@@ -10,17 +10,16 @@ const nextConfig = {
     }
     return config;
   },
-  // Disable ESLint during build to avoid deployment issues
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Disable type checking during build for faster deployment
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  // Optimize for Vercel deployment
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
   output: 'standalone',
   poweredByHeader: false,
+  // Disable minification to avoid chunk issues
+  swcMinify: false,
+  // Disable experimental features
+  experimental: {
+    esmExternals: false,
+  },
 };
 
 module.exports = nextConfig;
