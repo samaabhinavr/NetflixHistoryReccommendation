@@ -447,13 +447,18 @@ export async function generateRecommendations(
     .neq("user_id", userId);
 
   if (error || !allMovies) {
+    console.error("Failed to fetch movies for recommendations:", error);
     throw new Error("Failed to fetch movies for recommendations");
   }
+
+  console.log(`Found ${allMovies.length} movies in database for recommendations`);
 
   // Filter out movies the user has already watched
   const unwatchedMovies = allMovies.filter(movie => 
     !userWatchedTitles.has(movie.title.toLowerCase().trim())
   );
+
+  console.log(`Found ${unwatchedMovies.length} unwatched movies for recommendations`);
 
   // If user has very few movies, use fallback strategies
   if (preferences.totalMovies < 3) {
@@ -482,6 +487,8 @@ export async function generateRecommendations(
     .filter(rec => rec.similarity > 0.05) // Lower threshold to show more recommendations
     .sort((a, b) => b.similarity - a.similarity); // Sort by similarity descending
 
+  console.log(`Generated ${recommendations.length} recommendations with similarity > 0.05`);
+
   // If we don't have enough recommendations, add genre-based ones
   if (recommendations.length < limit) {
     const topGenres = Object.entries(preferences.genreCounts)
@@ -508,6 +515,8 @@ export async function generateRecommendations(
 
   // Add diversity and limit results
   const diverseRecommendations = addDiversityToRecommendations(recommendations, limit);
+
+  console.log(`Final diverse recommendations: ${diverseRecommendations.length}`);
 
   // Add reasoning for each recommendation
   return diverseRecommendations.map(rec => {

@@ -22,18 +22,31 @@ interface Recommendation {
   posterUrl?: string;
 }
 
-export default function MovieRecommendations() {
+interface MovieRecommendationsProps {
+  userMetadata?: MovieMetadata[];
+  userPreferences?: AggregatedPreferences | null;
+}
+
+export default function MovieRecommendations({ 
+  userMetadata, 
+  userPreferences 
+}: MovieRecommendationsProps) {
   const session = useSession();
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preferences, setPreferences] = useState<AggregatedPreferences | null>(null);
+  const [preferences, setPreferences] = useState<AggregatedPreferences | null>(userPreferences || null);
 
   useEffect(() => {
     if (session?.user) {
-      loadRecommendations();
+      if (userMetadata && userMetadata.length > 0) {
+        loadRecommendations();
+      } else if (!userMetadata) {
+        // Fallback: load from database if no metadata provided
+        loadRecommendations();
+      }
     }
-  }, [session]);
+  }, [session, userMetadata, userPreferences]);
 
   const loadRecommendations = async () => {
     if (!session?.user) return;
@@ -43,19 +56,32 @@ export default function MovieRecommendations() {
     setError(null);
 
     try {
-      // Fetch user's viewing history
-      console.log('Fetching user metadata...');
-      const userMetadata = await fetchUserMetadata(session.user.id);
-      console.log('Fetched user metadata:', userMetadata.length, 'movies');
+      // Use provided metadata or fetch from database
+      let metadata = userMetadata;
+      let prefs = userPreferences;
       
-      // Aggregate user preferences
-      const userPreferences = aggregatePreferences(userMetadata);
-      console.log('Aggregated preferences:', userPreferences);
-      setPreferences(userPreferences);
+      if (!metadata || metadata.length === 0) {
+        console.log('No metadata provided, fetching from database...');
+        metadata = await fetchUserMetadata(session.user.id);
+      }
+      
+      if (!prefs && metadata) {
+        console.log('No preferences provided, aggregating from metadata...');
+        prefs = aggregatePreferences(metadata);
+      }
+      
+      console.log('Using metadata:', metadata?.length || 0, 'movies');
+      console.log('Using preferences:', prefs);
+      
+      setPreferences(prefs || null);
+
+      if (!prefs || !metadata || metadata.length === 0) {
+        throw new Error('No user data available for recommendations');
+      }
 
       // Generate recommendations
       console.log('Generating recommendations...');
-      const recs = await generateRecommendations(session.user.id, userPreferences, 10);
+      const recs = await generateRecommendations(session.user.id, prefs, 10);
       console.log('Generated recommendations:', recs.length);
       
       // Fetch posters for recommendations
