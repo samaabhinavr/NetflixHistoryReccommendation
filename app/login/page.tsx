@@ -5,8 +5,6 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { useSupabaseClient, useSession } from "@supabase/auth-helpers-react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import type { MovieMetadata } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Film, TrendingUp } from 'lucide-react';
 
@@ -36,7 +34,7 @@ export default function LoginPage() {
             </h1>
             <p className="text-xl text-gray-600 mb-8">
               Get personalized movie recommendations based on your Netflix viewing history. 
-              Our AI analyzes your preferences to suggest movies you'll love.
+              Our AI analyzes your preferences to suggest movies you&apos;ll love.
             </p>
           </div>
 
@@ -115,16 +113,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
-
-export async function fetchUserMetadata(userId: string): Promise<MovieMetadata[]> {
-  const { data, error } = await supabase
-    .from("movie_metadata")
-    .select("*")
-    .eq("user_id", userId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-  return data || [];
 } 

@@ -20,8 +20,8 @@ export function MovieList({ titles, totalCount }: MovieListProps) {
           </div>
           <CardTitle className="text-xl text-gray-600">No Titles Found</CardTitle>
           <CardDescription>
-            We couldn't find any movie or show titles in your CSV file. 
-            Make sure your file has a column with titles like "title", "name", "movie", or "show".
+            We couldn&apos;t find any movie or show titles in your CSV file. 
+            Make sure your file has a column with titles like &quot;title&quot;, &quot;name&quot;, &quot;movie&quot;, or &quot;show&quot;.
           </CardDescription>
         </CardHeader>
       </Card>

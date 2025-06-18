@@ -353,7 +353,7 @@ export default function Home() {
             </Button>
             <div className="text-center">
               <p className="text-sm text-gray-500">
-                Don't have an account? 
+                Don&apos;t have an account? 
                 <Button 
                   variant="link" 
                   className="p-0 h-auto text-red-600 hover:text-red-700"

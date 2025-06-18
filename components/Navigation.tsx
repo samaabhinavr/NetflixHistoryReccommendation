@@ -155,8 +155,8 @@ export default function Navigation() {
                       <ul className="text-sm text-blue-800 space-y-1">
                         <li>• This method downloads your viewing history instantly</li>
                         <li>• The CSV file contains all your viewing activity</li>
-                        <li>• Make sure you're logged into the correct Netflix profile</li>
-                        <li>• The file will be named something like "NetflixViewingHistory.csv"</li>
+                        <li>• Make sure you&apos;re logged into the correct Netflix profile</li>
+                        <li>• The file will be named something like &quot;NetflixViewingHistory.csv&quot;</li>
                         <li>• You can download this data as often as you want</li>
                       </ul>
                     </CardContent>
