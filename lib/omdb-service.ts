@@ -1,6 +1,6 @@
 const OMDB_API_KEY = '5c64a789'
-const OMDB_BASE_URL = 'http://www.omdbapi.com'
-const OMDB_POSTER_URL = 'http://img.omdbapi.com'
+const OMDB_BASE_URL = 'https://www.omdbapi.com'
+const OMDB_POSTER_URL = 'https://img.omdbapi.com'
 
 export type OMDBResponse = {
   Title: string

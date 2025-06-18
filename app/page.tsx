@@ -212,15 +212,17 @@ export default function Home() {
   const processTitle = async (cleanedTitle: string, originalTitle: string, userId: string): Promise<MovieMetadata | null> => {
     try {
       // Check if metadata already exists in Supabase (by original title and user_id)
-      const { data: existingData } = await supabase
+      // Use a more robust query that handles special characters
+      const { data: existingData, error: existingError } = await supabase
         .from('movie_metadata')
         .select('*')
-        .eq('title', originalTitle)
         .eq('user_id', userId)
-        .single();
+        .ilike('title', originalTitle);
 
-      if (existingData) {
-        return existingData;
+      if (existingError) {
+        console.error(`Error checking existing data for ${originalTitle}:`, existingError);
+      } else if (existingData && existingData.length > 0) {
+        return existingData[0]; // Return the first match
       }
 
       // Fetch from OMDB using cleaned title
@@ -324,20 +326,6 @@ export default function Home() {
       }
 
       console.log(`Processing complete. Successfully processed ${newMetadata.length} movies.`);
-
-      // Store metadata in database
-      if (newMetadata.length > 0) {
-        console.log('Storing metadata in database...');
-        const { error: insertError } = await supabase
-          .from('movie_metadata')
-          .insert(newMetadata);
-
-        if (insertError) {
-          console.error('Error inserting metadata:', insertError);
-          throw new Error(`Failed to store metadata: ${insertError.message}`);
-        }
-        console.log('Metadata stored successfully');
-      }
 
       // Update state
       setMetadata(newMetadata);
