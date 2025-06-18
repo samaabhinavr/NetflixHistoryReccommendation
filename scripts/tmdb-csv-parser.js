@@ -133,9 +133,9 @@ function processTMDBMovie(movie) {
 // Process TMDB credit data
 function processTMDBCredit(credit) {
   return {
-    movie_id: credit.id?.toString() || '',
-    cast: credit.cast || '[]',
-    crew: credit.crew || '[]'
+    movie_id: credit.movie_id?.toString() || '',
+    cast: extractCast(credit.cast || '[]'),
+    crew: extractDirector(credit.crew || '[]')
   };
 }
 
@@ -144,8 +144,8 @@ function combineMovieAndCredit(movie, credit) {
   return {
     title: movie.title,
     genre: movie.genres || 'N/A',
-    cast: credit ? extractCast(credit.cast) : 'N/A',
-    director: credit ? extractDirector(credit.crew) : 'N/A',
+    cast: credit ? credit.cast : 'N/A',
+    director: credit ? credit.crew : 'N/A',
     duration: movie.runtime || 'N/A',
     poster_url: null // TMDB doesn't provide poster URLs in this dataset
   };

@@ -10,6 +10,7 @@ import { parseCSVFile, type ParsedCSVData } from '@/lib/csv-parser';
 import { MovieList } from '@/components/movie-list';
 import { MovieMetadataList } from '@/components/movie-metadata';
 import UserPreferences from '@/components/UserPreferences';
+import MovieRecommendations from '@/components/movie-recommendations';
 import { supabase } from '@/lib/supabase';
 import { fetchMovieDetails } from '@/lib/omdb-service';
 import { aggregatePreferences, type AggregatedPreferences } from '@/lib/recommendation';
@@ -506,6 +507,7 @@ export default function Home() {
                   <div className="mb-8">
                     <h2 className="mb-4 text-2xl font-bold">Movie Metadata</h2>
                     <UserPreferences preferences={preferences} />
+                    <MovieRecommendations />
                     <MovieMetadataList metadata={metadata} />
                   </div>
                 )}
