@@ -101,6 +101,50 @@ export default function MovieRecommendations() {
     return "Fair Match";
   };
 
+  // Helper function to get match level and color
+  function getMatchLevel(similarity: number) {
+    const percentage = Math.round(similarity * 100);
+    if (percentage >= 80) return { level: '🔥 EXCELLENT', color: 'text-green-600', bgColor: 'bg-green-50' };
+    if (percentage >= 60) return { level: '⭐ GREAT', color: 'text-blue-600', bgColor: 'bg-blue-50' };
+    if (percentage >= 40) return { level: '👍 GOOD', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+    if (percentage >= 20) return { level: '✅ FAIR', color: 'text-orange-600', bgColor: 'bg-orange-50' };
+    return { level: '📊 LOW', color: 'text-gray-600', bgColor: 'bg-gray-50' };
+  }
+
+  // Helper function to get match reason
+  function getMatchReason(movie: MovieMetadata, userPreferences: AggregatedPreferences): string {
+    const reasons: string[] = [];
+    
+    // Check genre matches
+    if (movie.genre && movie.genre !== 'N/A') {
+      const movieGenres = movie.genre.split(",").map(g => g.trim());
+      const matchingGenres = Object.keys(userPreferences.genreCounts).filter(g => movieGenres.includes(g));
+      if (matchingGenres.length > 0) {
+        reasons.push(`${matchingGenres.length} genre match${matchingGenres.length > 1 ? 'es' : ''}: ${matchingGenres.slice(0, 2).join(", ")}`);
+      }
+    }
+    
+    // Check actor matches
+    if (movie.cast && movie.cast !== 'N/A') {
+      const movieActors = movie.cast.split(",").map(a => a.trim());
+      const matchingActors = Object.keys(userPreferences.actorCounts).filter(a => movieActors.includes(a));
+      if (matchingActors.length > 0) {
+        reasons.push(`${matchingActors.length} actor match${matchingActors.length > 1 ? 'es' : ''}: ${matchingActors.slice(0, 2).join(", ")}`);
+      }
+    }
+    
+    // Check director matches
+    if (movie.director && movie.director !== 'N/A') {
+      const movieDirectors = movie.director.split(",").map(d => d.trim());
+      const matchingDirectors = Object.keys(userPreferences.directorCounts).filter(d => movieDirectors.includes(d));
+      if (matchingDirectors.length > 0) {
+        reasons.push(`${matchingDirectors.length} director match${matchingDirectors.length > 1 ? 'es' : ''}: ${matchingDirectors.slice(0, 2).join(", ")}`);
+      }
+    }
+    
+    return reasons.length > 0 ? reasons.join(", ") : "Similar content style";
+  }
+
   if (!session?.user) {
     return (
       <Card>
@@ -204,73 +248,76 @@ export default function MovieRecommendations() {
               No recommendations available. Try uploading more movies to your viewing history.
             </p>
           ) : (
-            <div className="space-y-4">
-              {recommendations.map((rec, index) => (
-                <div key={rec.movie.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    {/* Poster */}
-                    {rec.posterUrl && (
-                      <div className="flex-shrink-0">
-                        <img 
-                          src={rec.posterUrl} 
-                          alt={`${rec.movie.title} poster`}
-                          className="w-16 h-24 object-cover rounded-md shadow-sm"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recommendations.map((rec, index) => {
+                const matchInfo = getMatchLevel(rec.similarity);
+                const matchReason = preferences ? getMatchReason(rec.movie, preferences) : "Based on your viewing history";
+                
+                return (
+                  <Card key={rec.movie.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="relative">
+                      {rec.posterUrl && (
+                        <img
+                          src={rec.posterUrl}
+                          alt={rec.movie.title}
+                          className="w-full h-64 object-cover"
                         />
-                      </div>
-                    )}
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">
-                          {index + 1}. {rec.movie.title}
-                        </h3>
-                        <Badge variant="secondary" className="text-xs">
-                          {formatDuration(rec.movie.duration)}
-                        </Badge>
-                      </div>
-                      
-                      {/* Genres */}
-                      {rec.movie.genre && rec.movie.genre !== 'N/A' && (
-                        <div className="flex flex-wrap gap-1 mb-2">
-                          {rec.movie.genre.split(",").map((genre, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              {genre.trim()}
-                            </Badge>
-                          ))}
-                        </div>
                       )}
-
-                      {/* Cast and Director */}
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {rec.movie.cast && rec.movie.cast !== 'N/A' && (
-                          <p><span className="font-medium">Cast:</span> {rec.movie.cast.split(",").slice(0, 3).join(", ")}</p>
-                        )}
-                        {rec.movie.director && rec.movie.director !== 'N/A' && (
-                          <p><span className="font-medium">Director:</span> {rec.movie.director}</p>
-                        )}
+                      <div className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold ${matchInfo.bgColor} ${matchInfo.color}`}>
+                        {Math.round(rec.similarity * 100)}%
                       </div>
-
-                      {/* Reasoning */}
-                      <p className="text-sm text-blue-600 font-medium">{rec.reason}</p>
                     </div>
-
-                    {/* Similarity Score */}
-                    <div className="flex flex-col items-end gap-2 ml-4">
-                      <div className="text-right">
-                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium text-white ${getSimilarityColor(rec.similarity)}`}>
-                          {getSimilarityText(rec.similarity)}
+                    
+                    <CardContent className="p-4">
+                      <div className="space-y-3">
+                        <div>
+                          <h3 className="font-semibold text-lg line-clamp-2">{rec.movie.title}</h3>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {matchInfo.level}
+                          </Badge>
+                        </div>
+                        
+                        {rec.movie.genre && rec.movie.genre !== 'N/A' && (
+                          <div className="flex flex-wrap gap-1">
+                            {rec.movie.genre.split(",").slice(0, 3).map((genre, idx) => (
+                              <Badge key={idx} variant="outline" className="text-xs">
+                                {genre.trim()}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="text-sm text-gray-600 space-y-1">
+                          {rec.movie.cast && rec.movie.cast !== 'N/A' && (
+                            <p className="line-clamp-1">
+                              <span className="font-medium">Cast:</span> {rec.movie.cast.split(",").slice(0, 2).join(", ")}
+                            </p>
+                          )}
+                          {rec.movie.director && rec.movie.director !== 'N/A' && (
+                            <p className="line-clamp-1">
+                              <span className="font-medium">Director:</span> {rec.movie.director}
+                            </p>
+                          )}
+                          {rec.movie.duration && rec.movie.duration !== 'N/A' && (
+                            <p>
+                              <span className="font-medium">Duration:</span> {rec.movie.duration}
+                            </p>
+                          )}
+                        </div>
+                        
+                        <div className="pt-2 border-t">
+                          <p className="text-xs text-gray-500 line-clamp-2">
+                            <span className="font-medium">Why recommended:</span> {matchReason}
+                          </p>
                         </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {Math.round(rec.similarity * 100)}% match
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </CardContent>

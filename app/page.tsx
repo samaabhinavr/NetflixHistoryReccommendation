@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle, XCircle, AlertTriangle, Loader2, Sparkles, TrendingUp, User } from 'lucide-react';
 import { parseCSVFile, type ParsedCSVData } from '@/lib/csv-parser';
 import { MovieList } from '@/components/movie-list';
 import { MovieMetadataList } from '@/components/movie-metadata';
@@ -200,7 +200,7 @@ export default function Home() {
       case 'error':
         return 'border-red-300 bg-red-50';
       default:
-        return 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100';
+        return 'border-gray-300 bg-white';
     }
   };
 
@@ -329,115 +329,203 @@ export default function Home() {
     }
   }, [session, router]);
 
-  if (!session) {
-    return null; // Or a loading spinner
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-red-100">
+        <Card className="w-full max-w-md mx-4">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <User className="h-8 w-8 text-red-600" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              Welcome to Netflix Recommendations
+            </CardTitle>
+            <CardDescription className="text-gray-600">
+              Sign in to get personalized movie recommendations based on your viewing history
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={() => router.push('/login')} 
+              className="w-full bg-red-600 hover:bg-red-700"
+            >
+              Sign In to Continue
+            </Button>
+            <div className="text-center">
+              <p className="text-sm text-gray-500">
+                Don't have an account? 
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto text-red-600 hover:text-red-700"
+                  onClick={() => router.push('/login')}
+                >
+                  Sign up here
+                </Button>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">CSV Movie Parser</h1>
-          <p className="text-lg text-gray-600">Upload your CSV file to extract and display movie & show titles</p>
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Hero Section */}
+      <div className="text-center mb-12">
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <Sparkles className="h-4 w-4" />
+          AI-Powered Recommendations
         </div>
+        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+          Discover Your Next Favorite Movie
+        </h1>
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          Upload your Netflix viewing history and get personalized movie recommendations 
+          based on your taste and preferences.
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Upload Section */}
-          <div>
-            <Card className="shadow-xl border-0 bg-white/80 backdrop-blur-sm">
-              <CardHeader className="text-center pb-6">
-                <CardTitle className="text-2xl">Upload CSV File</CardTitle>
-                <CardDescription className="text-base">
-                  Drag and drop your CSV file here, or click to browse
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                {/* Upload Zone */}
-                <div
-                  className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-200 cursor-pointer ${getStatusColor()}`}
-                  onDrop={handleDrop}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onClick={() => document.getElementById('file-input')?.click()}
-                >
+      {/* Stats Cards */}
+      {metadata.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-600">Movies Processed</p>
+                  <p className="text-2xl font-bold text-blue-900">{metadata.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-600">Recommendations</p>
+                  <p className="text-2xl font-bold text-green-900">Ready</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-purple-600">Your Profile</p>
+                  <p className="text-2xl font-bold text-purple-900">Active</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="space-y-8">
+        {/* File Upload Section */}
+        {uploadState.status === 'idle' && (
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold">Upload Your Netflix History</CardTitle>
+              <CardDescription>
+                Drag and drop your Netflix viewing history CSV file or click to browse
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${getStatusColor()}`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <div className="space-y-4">
+                  {getStatusIcon()}
+                  <div>
+                    <p className="text-lg font-medium text-gray-900">
+                      {isDragOver ? 'Drop your file here' : 'Upload your CSV file'}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      or drag and drop your Netflix viewing history CSV file
+                    </p>
+                  </div>
+                  <Button onClick={() => document.getElementById('file-upload')?.click()}>
+                    Choose File
+                  </Button>
                   <input
-                    id="file-input"
+                    id="file-upload"
                     type="file"
                     accept=".csv"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
-                  
-                  <div className="flex flex-col items-center space-y-4">
-                    {getStatusIcon()}
-                    
-                    <div className="space-y-2">
-                      {uploadState.status === 'idle' && (
-                        <>
-                          <p className="text-lg font-medium text-gray-700">
-                            Drop your CSV file here
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            or click to browse files
-                          </p>
-                        </>
-                      )}
-                      
-                      {uploadState.status === 'uploading' && (
-                        <p className="text-lg font-medium text-blue-600">
-                          Parsing CSV file...
-                        </p>
-                      )}
-                      
-                      {uploadState.status === 'success' && uploadState.file && (
-                        <>
-                          <p className="text-lg font-medium text-green-600">
-                            File parsed successfully!
-                          </p>
-                          <div className="flex items-center justify-center space-x-2">
-                            <Badge variant="secondary" className="bg-green-100 text-green-800">
-                              {uploadState.file.name}
-                            </Badge>
-                            <Badge variant="outline">
-                              {(uploadState.file.size / 1024).toFixed(1)} KB
-                            </Badge>
-                          </div>
-                        </>
-                      )}
-                      
-                      {uploadState.status === 'error' && (
-                        <p className="text-lg font-medium text-red-600">
-                          Upload failed
-                        </p>
-                      )}
-                    </div>
-                  </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* Error Alert */}
-                {uploadState.error && (
-                  <Alert className="border-red-200 bg-red-50">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                    <AlertDescription className="text-red-700">
-                      {uploadState.error}
-                    </AlertDescription>
-                  </Alert>
-                )}
+        {/* Processing Section */}
+        {uploadState.status === 'uploading' && (
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle>Processing Your File</CardTitle>
+              <CardDescription>Please wait while we analyze your viewing history</CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-500" />
+              <p className="text-sm text-gray-600">Validating and parsing your CSV file...</p>
+            </CardContent>
+          </Card>
+        )}
 
-                {/* File Preview */}
-                {uploadState.preview && uploadState.status === 'success' && (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-900">File Preview</h3>
+        {/* Success Section */}
+        {uploadState.status === 'success' && uploadState.parsedData && (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  File Uploaded Successfully!
+                </CardTitle>
+                <CardDescription>
+                  Found {uploadState.parsedData.data.length} titles in your viewing history
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">File: {uploadState.file?.name}</span>
+                    <Button variant="outline" size="sm" onClick={resetUpload}>
+                      Upload Different File
+                    </Button>
+                  </div>
+                  
+                  {uploadState.preview && (
                     <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gray-50 px-4 py-2 border-b">
+                        <h4 className="font-medium text-sm">Preview (First 4 rows)</h4>
+                      </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <tbody>
                             {uploadState.preview.map((row, rowIndex) => (
-                              <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-50 font-medium' : 'hover:bg-gray-50'}>
+                              <tr key={rowIndex} className={rowIndex === 0 ? 'bg-gray-100 font-medium' : ''}>
                                 {row.map((cell, cellIndex) => (
-                                  <td key={cellIndex} className="px-4 py-2 border-r last:border-r-0 border-gray-200">
-                                    {cell || '—'}
+                                  <td key={cellIndex} className="px-4 py-2 border-b">
+                                    {cell}
                                   </td>
                                 ))}
                               </tr>
@@ -445,86 +533,74 @@ export default function Home() {
                           </tbody>
                         </table>
                       </div>
-                      {uploadState.preview.length >= 5 && (
-                        <div className="px-4 py-2 bg-gray-50 text-xs text-gray-500 border-t">
-                          Showing first 4 data rows of your CSV file
-                        </div>
-                      )}
                     </div>
-                  </div>
-                )}
-
-                {/* Actions */}
-                {(uploadState.status === 'success' || uploadState.status === 'error') && (
-                  <div className="flex justify-center">
-                    <Button onClick={resetUpload} variant="outline" className="px-6">
-                      Upload Another File
-                    </Button>
-                  </div>
-                )}
-
-                {/* File Format Info */}
-                <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
-                  <h4 className="font-semibold mb-2">Supported Format:</h4>
-                  <ul className="space-y-1">
-                    <li>• CSV files with .csv extension</li>
-                    <li>• Maximum file size: 10MB</li>
-                    <li>• Headers with movie/show titles (title, name, movie, show, etc.)</li>
-                  </ul>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Movie List Section */}
-          <div>
-            {uploadState.parsedData ? (
-              <>
-                <div className="mb-8">
-                  <MovieList 
-                    titles={titles} 
-                    totalCount={uploadState.parsedData.data.length}
-                  />
-                </div>
-                <div className="mb-4">
-                  <Button
+                  )}
+                  
+                  <Button 
                     onClick={fetchAndStoreMetadata}
                     disabled={isLoading}
-                    className="w-full"
+                    className="w-full bg-red-600 hover:bg-red-700"
                   >
                     {isLoading ? (
                       <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Fetching Metadata...
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Processing Movies...
                       </>
                     ) : (
-                      'Fetch Movie Metadata'
+                      'Get Movie Recommendations'
                     )}
                   </Button>
                 </div>
-                {isLoading && <ProgressIndicator progress={progress} />}
-                {metadata.length > 0 && (
-                  <div className="mb-8">
-                    <h2 className="mb-4 text-2xl font-bold">Movie Metadata</h2>
-                    <UserPreferences preferences={preferences} />
-                    <MovieRecommendations />
-                    <MovieMetadataList metadata={metadata} />
-                  </div>
-                )}
-              </>
-            ) : (
-              <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm h-full flex items-center justify-center">
-                <CardContent className="text-center py-16">
-                  <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No File Uploaded</h3>
-                  <p className="text-gray-500">
-                    Upload a CSV file to see the extracted movie and show titles here
-                  </p>
+              </CardContent>
+            </Card>
+
+            {/* Progress Indicator */}
+            {isLoading && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Processing Your Movies</CardTitle>
+                  <CardDescription>
+                    Fetching movie details and generating recommendations...
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ProgressIndicator 
+                    progress={{ current: progress.current, total: progress.total, batch: progress.batch, totalBatches: progress.totalBatches }}
+                  />
                 </CardContent>
               </Card>
             )}
           </div>
-        </div>
+        )}
+
+        {/* Error Section */}
+        {uploadState.status === 'error' && (
+          <Card className="max-w-2xl mx-auto border-red-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-red-600">
+                <XCircle className="h-5 w-5" />
+                Upload Failed
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{uploadState.error}</AlertDescription>
+              </Alert>
+              <Button onClick={resetUpload} className="mt-4">
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Results Sections */}
+        {metadata.length > 0 && (
+          <div className="space-y-8">
+            <UserPreferences preferences={preferences} />
+            <MovieRecommendations />
+          </div>
+        )}
       </div>
     </div>
   );

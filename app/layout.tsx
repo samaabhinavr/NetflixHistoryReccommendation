@@ -2,12 +2,13 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import SupabaseProvider from '@/components/SupabaseProvider';
+import Navigation from '@/components/Navigation';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CSV File Upload - Secure & Fast',
-  description: 'Upload and validate CSV files with our secure, fast, and user-friendly interface',
+  title: 'Netflix Movie Recommendations',
+  description: 'Get personalized movie recommendations based on your Netflix viewing history',
 };
 
 export default function RootLayout({
@@ -19,7 +20,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <SupabaseProvider>
-          {children}
+          <Navigation />
+          <main className="min-h-screen bg-gray-50">
+            {children}
+          </main>
         </SupabaseProvider>
       </body>
     </html>
